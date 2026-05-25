@@ -560,18 +560,66 @@ for (
         originalName
       ) {
 
+        tentConflicts.push({
+
+  material:
+    originalName,
+
+  benötigt:
+    required,
+
+  verfügbar:
+    required - stillNeeded,
+
+  fehlt:
+    stillNeeded,
+
+  reservierungen:
+    reservationUsage[
+      originalName
+    ] || [],
+
+  resolvedByAlternative:
+    true
+
+});
+
+
         usedAlternatives.push({
 
-          original:
-            originalName,
+  original:
+    originalName,
 
-          alternative:
-            altName,
+  alternative:
+    altName,
 
-          quantity:
-            used
+  quantity:
+    used,
 
-        });
+  allAlternatives:
+  alternatives.map(
+    (a: any) => ({
+
+      name:
+        a.name,
+
+      priority:
+        Number(
+          a.priority || 999
+        ),
+
+      available:
+        allocatorPool[
+          String(a.name).trim()
+        ] || 0,
+
+      isUsed:
+        a.name === altName
+
+    })
+  )
+
+});
 
       }
 
@@ -590,8 +638,9 @@ for (
     // =========================
 
     if (
-      stillNeeded > 0
-    ) {
+  stillNeeded > 0 &&
+  usedAlternatives.length === 0
+) {
 
       tentConflicts.push({
 
@@ -1165,19 +1214,85 @@ if (
                           className="border-b pb-3"
                         >
 
-                          <p className="font-bold">
+                          <p className="font-bold mb-2">
 
-                            {alt.quantity}x{" "}
-                            {alt.alternative}
+  {alt.quantity}x{" "}
+  {alt.alternative}
 
-                          </p>
+</p>
 
-                          <p className="text-sm text-gray-500">
+<p className="text-sm text-gray-500 mb-4">
 
-                            anstelle von{" "}
-                            {alt.original}
+  anstelle von{" "}
+  {alt.original}
 
-                          </p>
+</p>
+
+<div className="space-y-2">
+
+  {(alt.allAlternatives || [])
+
+    .sort(
+      (
+        a: any,
+        b: any
+      ) =>
+        Number(a.priority)
+        -
+        Number(b.priority)
+    )
+
+    .map(
+      (
+        alternative: any,
+        altIndex: number
+      ) => (
+
+        <div
+          key={altIndex}
+          className="
+            flex
+            justify-between
+            text-sm
+            border-b
+            pb-1
+          "
+        >
+
+          <span>
+
+            PRIO{" "}
+            {alternative.priority}
+            {" — "}
+            {alternative.name}
+
+          </span>
+
+          {
+
+            alternative.isUsed && (
+
+              <span className="
+  text-gray-600
+  font-semibold
+">
+
+  verfügbar:
+  {" "}
+  {alternative.available}
+
+</span>
+
+            )
+
+          }
+
+        </div>
+
+      )
+    )}
+
+</div>
 
                         </div>
 
