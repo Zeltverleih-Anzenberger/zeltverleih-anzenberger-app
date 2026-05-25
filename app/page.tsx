@@ -270,6 +270,8 @@ materials.forEach((material: any) => {
 // =========================
 // RESERVIERUNGEN ABZIEHEN
 // =========================
+const reservationUsage:
+  Record<string, any[]> = {};
 
 for (
   const reservation
@@ -648,15 +650,11 @@ for (
     string[] = [];
 
   if (
-    tentConflicts.length > 0
+    tentConflicts.length > 0 &&
+    tent?.name
   ) {
-  if (!tent?.name) {
-    continue;
-  }
-    const currentName =
-      String(
-        tent?.name
-      );
+      const currentName =
+       String(tent.name);
 
     const split =
       currentName.split("x");
@@ -795,7 +793,7 @@ if (
   setMessage(
     "Konflikte gefunden"
   );
-
+}
 }
 
   return (
@@ -907,7 +905,9 @@ if (
                       updateTent(
                         index,
                         "quantity",
-                        e.target.value
+                        Number(
+                          e.target.value
+                        )
                       )
                     }
                     className="border rounded-lg p-3"
@@ -973,8 +973,8 @@ if (
 
                           <p
                             className={
-                              result.status ===
-                              "Verfügbar"
+                              result.status !==
+                              "Konflikt"
                                 ? "text-green-600"
                                 : "text-red-600"
                             }
@@ -985,8 +985,8 @@ if (
                         </div>
 
                         {
-                          result.status ===
-                          "Konflikt" && (
+                          result.status !==
+                          "Verfügbar" && (
 
                             <button
                               onClick={() =>
@@ -1060,9 +1060,7 @@ if (
 
               <button
                 onClick={() =>
-                  setSelectedConflict(
-                    null
-                  )
+                  setSelectedConflict(null)
                 }
                 className="text-xl"
               >
@@ -1073,14 +1071,22 @@ if (
 
             <div className="space-y-6">
 
+              {/* HEADER */}
+
               <div>
 
                 <p className="font-bold text-2xl">
                   {selectedConflict.tent}
                 </p>
 
-                <p className="text-red-600 font-semibold">
-                  Konflikt
+                <p
+                  className={
+                    selectedConflict.status === "Konflikt"
+                      ? "text-red-600 font-semibold"
+                      : "text-green-600 font-semibold"
+                  }
+                >
+                  {selectedConflict.status}
                 </p>
 
               </div>
@@ -1095,7 +1101,7 @@ if (
 
                 <div className="space-y-4">
 
-                  {selectedConflict.conflicts.map(
+                  {(selectedConflict.conflicts || []).map(
                     (
                       conflict: any,
                       index: number
@@ -1110,25 +1116,22 @@ if (
                           {conflict.material}
                         </p>
 
-                        <div className="mt-1 text-sm">
+                        <p className="text-sm mt-1">
 
-                          <p>
-                            {conflict.benötigt}
-                            {" "}
-                            benötigt
-                            {" / "}
-                            {conflict.verfügbar}
-                            {" "}
-                            verfügbar
-                            {" / "}
-                            <span className="text-red-600 font-semibold">
-                              {conflict.fehlt}
-                              {" "}
-                              fehlt
-                            </span>
-                          </p>
+                          {conflict.benötigt}
+                          {" "}benötigt /{" "}
 
-                        </div>
+                          {conflict.verfügbar}
+                          {" "}verfügbar /{" "}
+
+                          <span className="text-red-600 font-semibold">
+
+                            {conflict.fehlt}
+                            {" "}fehlt
+
+                          </span>
+
+                        </p>
 
                       </div>
 
@@ -1138,6 +1141,54 @@ if (
                 </div>
 
               </div>
+
+              {/* VERWENDETE ALTERNATIVEN */}
+
+              {selectedConflict.usedAlternatives?.length > 0 && (
+
+                <div className="border rounded-xl p-5">
+
+                  <h3 className="font-bold text-lg mb-4">
+                    Verwendete Alternativen
+                  </h3>
+
+                  <div className="space-y-4">
+
+                    {selectedConflict.usedAlternatives.map(
+                      (
+                        alt: any,
+                        index: number
+                      ) => (
+
+                        <div
+                          key={index}
+                          className="border-b pb-3"
+                        >
+
+                          <p className="font-bold">
+
+                            {alt.quantity}x{" "}
+                            {alt.alternative}
+
+                          </p>
+
+                          <p className="text-sm text-gray-500">
+
+                            anstelle von{" "}
+                            {alt.original}
+
+                          </p>
+
+                        </div>
+
+                      )
+                    )}
+
+                  </div>
+
+                </div>
+
+              )}
 
               {/* RESERVIERUNGEN */}
 
@@ -1151,13 +1202,13 @@ if (
 
                   {Object.values(
 
-                    selectedConflict.conflicts.reduce(
+                    (selectedConflict.conflicts || []).reduce(
                       (
                         grouped: any,
                         conflict: any
                       ) => {
 
-                        conflict.reservierungen.forEach(
+                        (conflict.reservierungen || []).forEach(
                           (reservation: any) => {
 
                             const key =
@@ -1166,22 +1217,30 @@ if (
                             if (!grouped[key]) {
 
                               grouped[key] = {
+
                                 reservation:
                                   reservation.reservation,
+
                                 start:
                                   reservation.start,
+
                                 end:
                                   reservation.end,
+
                                 materials: []
+
                               };
 
                             }
 
                             grouped[key].materials.push({
+
                               material:
                                 conflict.material,
+
                               quantity:
                                 reservation.quantity
+
                             });
 
                           }
@@ -1205,20 +1264,22 @@ if (
                       >
 
                         <p className="font-bold text-lg">
+
                           {reservationGroup.reservation}
+
                         </p>
 
                         <p className="text-sm text-gray-600">
+
                           {reservationGroup.start}
-                          {" "}
-                          bis
-                          {" "}
+                          {" "}bis{" "}
                           {reservationGroup.end}
+
                         </p>
 
                         <div className="mt-4 space-y-2">
 
-                          {reservationGroup.materials.map(
+                          {(reservationGroup.materials || []).map(
                             (
                               material: any,
                               mIndex: number
@@ -1261,41 +1322,35 @@ if (
                   Mögliche Zeltalternativen
                 </h3>
 
-                {
-                  selectedConflict.alternatives
-                    ?.length === 0 && (
+                {selectedConflict.alternatives?.length === 0 && (
 
-                    <p>
-                      Keine passenden Alternativen verfügbar.
-                    </p>
+                  <p>
+                    Keine passenden Alternativen verfügbar.
+                  </p>
 
-                  )
-                }
+                )}
 
                 <div className="space-y-2">
 
-                  {
-                    selectedConflict.alternatives
-                      ?.map(
-                        (
-                          alternative: any,
-                          index: number
-                        ) => (
+                  {(selectedConflict.alternatives || []).map(
+                    (
+                      alternative: any,
+                      index: number
+                    ) => (
 
-                          <div
-                            key={index}
-                            className="border rounded-lg p-3"
-                          >
+                      <div
+                        key={index}
+                        className="border rounded-lg p-3"
+                      >
 
-                            <p className="font-bold">
-                              {alternative}
-                            </p>
+                        <p className="font-bold">
+                          {alternative}
+                        </p>
 
-                          </div>
+                      </div>
 
-                        )
-                      )
-                  }
+                    )
+                  )}
 
                 </div>
 
@@ -1308,10 +1363,9 @@ if (
         </div>
 
       )}
-
+    
     </main>
 
   );
 
-}
 }
