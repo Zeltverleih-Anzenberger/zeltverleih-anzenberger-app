@@ -508,6 +508,11 @@ for (
 
     }
 
+const originalAvailable =
+  allocatorPool[
+    originalName
+  ] || 0;
+
     let stillNeeded =
       required;
 
@@ -560,32 +565,11 @@ for (
         originalName
       ) {
 
-        tentConflicts.push({
-
-  material:
-    originalName,
-
-  benötigt:
-    required,
-
-  verfügbar:
-    required - stillNeeded,
-
-  fehlt:
-    stillNeeded,
-
-  reservierungen:
-    reservationUsage[
-      originalName
-    ] || [],
-
-  resolvedByAlternative:
-    true
-
-});
+        
 
 
         usedAlternatives.push({
+
 
   original:
     originalName,
@@ -621,6 +605,37 @@ for (
 
 });
 
+if (
+  used > 0 &&
+  altName !== originalName
+) {
+
+  tentConflicts.push({
+
+    material:
+      originalName,
+
+    benötigt:
+      required,
+
+    verfügbar:
+      originalAvailable,
+
+    fehlt:
+      required - originalAvailable,
+
+    reservierungen:
+      reservationUsage[
+        originalName
+      ] || [],
+
+    resolvedByAlternative:
+      true
+
+  });
+
+}
+
       }
 
       if (
@@ -637,10 +652,8 @@ for (
     // KONFLIKT
     // =========================
 
-    if (
-  stillNeeded > 0 &&
-  usedAlternatives.length === 0
-) {
+    if (stillNeeded > 0) 
+      {
 
       tentConflicts.push({
 
@@ -672,24 +685,31 @@ for (
   // STATUS
   // =========================
 
-  let status =
-    "Verfügbar";
+  const hasRealConflicts =
+  tentConflicts.some(
+    (c: any) =>
+      !c.resolvedByAlternative
+  );
 
-  if (
-    tentConflicts.length > 0
-  ) {
+const hasAlternatives =
+  usedAlternatives.length > 0;
 
-    status =
-      "Konflikt";
+let status =
+  "Verfügbar";
 
-  } else if (
-    usedAlternatives.length > 0
-  ) {
+if (hasRealConflicts) {
 
-    status =
-      "Verfügbar mit Alternativen";
+  status =
+    "Konflikt";
 
-  }
+} else if (
+  hasAlternatives
+) {
+
+  status =
+    "Verfügbar mit Alternativen";
+
+}
 
   // =========================
   // ZELTALTERNATIVEN
@@ -871,6 +891,7 @@ if (
 
               <input
                 type="date"
+                lang="de"
                 value={fromDate}
                 onChange={(e) =>
                   setFromDate(
@@ -1191,14 +1212,14 @@ if (
 
               </div>
 
-              {/* VERWENDETE ALTERNATIVEN */}
+              {/* VERWENDBARE ALTERNATIVEN */}
 
               {selectedConflict.usedAlternatives?.length > 0 && (
 
                 <div className="border rounded-xl p-5">
 
                   <h3 className="font-bold text-lg mb-4">
-                    Verwendete Alternativen
+                    Verwendbare Alternativen
                   </h3>
 
                   <div className="space-y-4">
@@ -1268,11 +1289,7 @@ if (
 
           </span>
 
-          {
-
-            alternative.isUsed && (
-
-              <span className="
+          <span className="
   text-gray-600
   font-semibold
 ">
@@ -1282,10 +1299,6 @@ if (
   {alternative.available}
 
 </span>
-
-            )
-
-          }
 
         </div>
 
