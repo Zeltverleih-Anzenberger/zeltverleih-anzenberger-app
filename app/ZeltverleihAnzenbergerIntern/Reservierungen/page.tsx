@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-import { supabase } from "@/app/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 import ReservationCard from "./ReservationCard";
 
 import EditReservationModal from "./EditReservationModal";
+
+import { ArrowLeft } from "lucide-react";
 
 type Reservation = {
   id: string;
@@ -15,16 +17,15 @@ type Reservation = {
   end_date: string;
   status: string;
 
-  reservation_tents: {
+  reservation_tents: Array<{
     quantity: number;
 
     tent_sizes: {
       name: string;
-    };
-
-  }[];
-
+    } | null;
+  }>;
 };
+
 
 export default function ReservierungenPage() {
 
@@ -49,33 +50,21 @@ export default function ReservierungenPage() {
 
     const { data, error } = await supabase
 
-      .from("reservations")
+  .from("reservations")
 
-      .select(`
+  .select(`
+    *,
+    reservation_tents (
+      *,
+      tent_sizes (
+        name
+      )
+    )
+  `)
 
-        id,
-        title,
-        start_date,
-        end_date,
-        status,
-
-        reservation_tents (
-
-          quantity,
-
-          tent_sizes (
-
-            name
-
-          )
-
-        )
-
-      `)
-
-      .order("start_date", {
-        ascending: true,
-      });
+  .order("start_date", {
+    ascending: true,
+  });
 
     if (error) {
 
@@ -87,7 +76,7 @@ export default function ReservierungenPage() {
 
     }
 
-    setReservations(data || []);
+    setReservations((data ?? []) as Reservation[]);
 
     setLoading(false);
 
@@ -107,24 +96,60 @@ export default function ReservierungenPage() {
 
       <div className="flex justify-between items-center mb-10 print:hidden">
 
-        <h1 className="text-5xl font-bold">
+  {/* LINKE SEITE */}
 
-          Reservierungen
+  <div className="flex items-center gap-4">
 
-        </h1>
+    <button
 
-        <button
+      onClick={() => window.location.href = "/"}
 
-          onClick={handlePrint}
+      className="bg-white border border-gray-300 p-3 rounded-2xl hover:bg-gray-100 transition shadow-sm"
+    >
 
-          className="bg-black text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-800 transition"
-        >
+      <ArrowLeft size={28} />
 
-          Reservierungsliste drucken
+    </button>
 
-        </button>
+    <h1 className="text-5xl font-bold">
 
-      </div>
+      Reservierungen
+
+    </h1>
+
+  </div>
+
+  {/* RECHTE SEITE */}
+
+  <div className="flex gap-4">
+
+    {/* NEUE RESERVIERUNG */}
+
+    <button
+
+      className="bg-green-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-green-700 transition"
+    >
+
+      Neue Reservierung
+
+    </button>
+
+    {/* DRUCKEN */}
+
+    <button
+
+      onClick={handlePrint}
+
+      className="bg-black text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-800 transition"
+    >
+
+      Reservierungsliste drucken
+
+    </button>
+
+  </div>
+
+</div>
 
       {/* LISTE */}
 

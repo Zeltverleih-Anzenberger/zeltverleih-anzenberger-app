@@ -17,7 +17,23 @@ type Reservation = {
 };
 
 type Props = {
-  reservation: Reservation;
+  reservation: {
+    id: string;
+    title: string;
+    start_date: string;
+    end_date: string;
+    status: string;
+
+    reservation_tents: {
+      quantity: number;
+
+      tent_sizes: {
+        name: string;
+      } | null;
+
+    }[];
+  };
+
   onEdit: () => void;
 };
 

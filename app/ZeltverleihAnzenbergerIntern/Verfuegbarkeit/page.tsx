@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/lib/supabase";
+
+import { ArrowLeft } from "lucide-react";
 
 type RequestedTent = {
   tent_size_id: string;
@@ -871,9 +873,26 @@ if (
 
       <div className="max-w-6xl mx-auto">
 
-        <h1 className="text-5xl font-bold mb-10">
-          Zeltverleih Anzenberger - Verfügbarkeit
-        </h1>
+  <div className="flex items-center gap-4 mb-10">
+
+    <button
+
+      onClick={() => window.location.href = "/"}
+
+      className="bg-white border border-gray-300 p-3 rounded-2xl hover:bg-gray-100 transition shadow-sm"
+    >
+
+      <ArrowLeft size={28} />
+
+    </button>
+
+    <h1 className="text-5xl font-bold">
+
+      Zeltverleih Anzenberger - Verfügbarkeit
+
+    </h1>
+
+  </div>
 
         <div className="bg-white rounded-2xl shadow p-8">
 
