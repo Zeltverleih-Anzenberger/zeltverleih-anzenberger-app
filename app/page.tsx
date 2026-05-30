@@ -78,20 +78,26 @@ export default function Home() {
 
         {/* MITARBEITER */}
 
-        <div className="bg-gray-100 rounded-3xl shadow-xl h-[320px] flex flex-col items-center justify-center hover:bg-gray-200 transition">
+<Link
+  href="/ZeltverleihAnzenbergerIntern/Mitarbeiterverwaltung"
+>
 
-          <Users
-            size={80}
-            className="mb-8 text-black"
-          />
+  <div className="bg-gray-100 rounded-3xl shadow-xl h-[320px] flex flex-col items-center justify-center hover:bg-gray-200 transition cursor-pointer">
 
-          <h2 className="text-3xl font-bold text-black text-center px-6">
+    <Users
+      size={80}
+      className="mb-8 text-black"
+    />
 
-            Mitarbeiterverwaltung
+    <h2 className="text-3xl font-bold text-black text-center px-6">
 
-          </h2>
+      Mitarbeiterverwaltung
 
-        </div>
+    </h2>
+
+  </div>
+
+</Link>
 
       </div>
 
