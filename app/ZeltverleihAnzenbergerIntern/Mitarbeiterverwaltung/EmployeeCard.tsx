@@ -1,7 +1,3 @@
-import { useState } from "react";
-
-import AddWorkLogModal from "./AddWorkLogModal";
-
 type Employee = {
   id: string;
 
@@ -35,8 +31,6 @@ export default function EmployeeCard({
   onEdit,
   onShowLogs,
 }: Props) {
-
-  const [showWorkLogModal, setShowWorkLogModal] = useState(false);
 
   return (
 
@@ -117,20 +111,12 @@ export default function EmployeeCard({
 
         </div>
 
-        <button
-  onClick={() => setShowWorkLogModal(true)}
-  className="bg-blue-600 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-blue-700 transition"
->
-
-  + Stunde
-
-</button>
 
 <button
   onClick={onShowLogs}
   className="bg-gray-200 text-black px-5 py-3 rounded-2xl font-semibold hover:bg-gray-300 transition"
 >
-  Stunden
+  Arbeitsstunden
 </button>
 
         <button
@@ -146,17 +132,7 @@ export default function EmployeeCard({
 
       </div>
 
-      {showWorkLogModal && (
-
-  <AddWorkLogModal
-    employeeId={employee.id}
-
-    onClose={() => setShowWorkLogModal(false)}
-
-    onSaved={() => window.location.reload()}
-  />
-
-)}
+      
 
     </div>
 
