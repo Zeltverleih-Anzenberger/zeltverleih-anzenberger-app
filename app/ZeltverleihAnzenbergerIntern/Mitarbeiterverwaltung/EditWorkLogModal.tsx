@@ -90,9 +90,15 @@ if (workLog?.id) {
     setLoading(false);
 
     if (error) {
-      console.error(error);
-      return;
-    }
+  console.error(error);
+
+  console.log("MESSAGE:", error.message);
+  console.log("DETAILS:", error.details);
+  console.log("HINT:", error.hint);
+  console.log("CODE:", error.code);
+
+  return;
+}
 
     onSaved();
   }

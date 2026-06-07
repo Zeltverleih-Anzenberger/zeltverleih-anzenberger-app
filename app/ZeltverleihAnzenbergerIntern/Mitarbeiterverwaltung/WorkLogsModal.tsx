@@ -17,6 +17,8 @@ type WorkLog = {
   hours: number;
 
   is_paid: boolean;
+
+  payout_id?: string | null;
 };
 
 type Props = {
@@ -37,6 +39,7 @@ export default function WorkLogsModal({
 }: Props) {
 
   const [logs, setLogs] = useState<WorkLog[]>([]);
+  const [payouts, setPayouts] = useState<any[]>([]);
 
   const [selectedWorkLog, setSelectedWorkLog] = useState<any>(null);
 
@@ -60,24 +63,188 @@ export default function WorkLogsModal({
     setLogs(data || []);
   }
 
-  async function markAsPaid(id: string) {
+  async function loadPayouts() {
 
-    const { error } = await supabase
-      .from("work_logs")
-      .update({
-        is_paid: true,
+    console.log("EMPLOYEE:", employeeId);
+
+  const { data, error } = await supabase
+    .from("payouts")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .order("payout_date", {
+      ascending: false,
+    });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  console.log("PAYOUTS GELADEN:", data);
+
+  setPayouts(data || []);
+}
+
+  async function markAsPaid(log: any) {
+
+
+  const today = new Date()
+    .toISOString()
+    .split("T")[0];
+
+  const { data: payout, error: payoutError } =
+    await supabase
+      .from("payouts")
+      .insert({
+        employee_id: employeeId,
+        payout_date: today,
+        hours_paid: Number(log.hours),
+        notes: "Einzelauszahlung",
       })
-      .eq("id", id);
+      .select()
+      .single();
 
-    if (error) {
-      console.error(error);
+  if (payoutError) {
+    console.error(payoutError);
+    return;
+  }
+
+  const { error } = await supabase
+    .from("work_logs")
+    .update({
+      is_paid: true,
+      status: "ausbezahlt",
+      payout_id: payout.id,
+    })
+    .eq("id", log.id);
+
+  if (error) {
+  console.error(error);
+  return;
+}
+
+  loadLogs();
+
+  loadPayouts();
+
+  onChanged();
+}
+
+async function payAllOpenHours() {
+
+  const openLogs = logs.filter(
+    (log) => !log.is_paid
+  );
+
+  if (openLogs.length === 0) {
+    alert("Keine offenen Stunden vorhanden.");
+    return;
+  }
+
+  const totalHours = openLogs.reduce(
+    (sum, log) => sum + Number(log.hours),
+    0
+  );
+
+  const today = new Date()
+    .toISOString()
+    .split("T")[0];
+
+  const { data: payout, error: payoutError } =
+    await supabase
+      .from("payouts")
+      .insert({
+        employee_id: employeeId,
+        payout_date: today,
+        hours_paid: totalHours,
+        notes: "Sammelauszahlung",
+      })
+      .select()
+      .single();
+
+  if (payoutError) {
+    console.error(payoutError);
+    return;
+  }
+
+  const ids = openLogs.map(
+    (log) => log.id
+  );
+
+  const { error } = await supabase
+    .from("work_logs")
+    .update({
+      is_paid: true,
+      status: "ausbezahlt",
+      payout_id: payout.id,
+    })
+    .in("id", ids);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  loadLogs();
+  loadPayouts();
+  onChanged();
+}
+
+async function markAsOpen(log: any) {
+
+  const payoutId = log.payout_id;
+
+  const { error } = await supabase
+    .from("work_logs")
+    .update({
+      is_paid: false,
+      status: "offen",
+      payout_id: null,
+    })
+    .eq("id", log.id);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  if (payoutId) {
+
+    const { data: remainingLogs, error: logsError } =
+      await supabase
+        .from("work_logs")
+        .select("hours")
+        .eq("payout_id", payoutId);
+
+    if (logsError) {
+      console.error(logsError);
       return;
     }
 
-    loadLogs();
+    const remainingHours =
+      remainingLogs?.reduce(
+        (sum, item) => sum + Number(item.hours),
+        0
+      ) || 0;
 
-    onChanged();
+    const { error: payoutError } =
+      await supabase
+        .from("payouts")
+        .update({
+          hours_paid: remainingHours,
+        })
+        .eq("id", payoutId);
+
+    if (payoutError) {
+      console.error(payoutError);
+      return;
+    }
   }
+
+  loadLogs();
+  loadPayouts();
+  onChanged();
+}
 
   async function deleteLog(id: string) {
 
@@ -90,7 +257,7 @@ export default function WorkLogsModal({
     const { error } = await supabase
       .from("work_logs")
       .delete()
-      .eq("id", id);
+      .eq("id",id);
 
     if (error) {
       console.error(error);
@@ -99,12 +266,15 @@ export default function WorkLogsModal({
 
     loadLogs();
 
+    loadPayouts();
+
     onChanged();
   }
 
   useEffect(() => {
-    loadLogs();
-  }, []);
+  loadLogs();
+  loadPayouts();
+}, []);
 
   const groupedLogs = [...logs]
   .filter((log) => {
@@ -260,7 +430,18 @@ export default function WorkLogsModal({
 
 </div>
 
-        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+<div className="mb-8">
+
+  <button
+    onClick={payAllOpenHours}
+    className="bg-green-700 text-white px-6 py-4 rounded-2xl font-bold hover:bg-green-800 transition"
+  >
+    Alle offenen Stunden auszahlen
+  </button>
+
+</div>
+
+        <div className="space-y-4 pr-2">
 
           {logs.length === 0 && (
 
@@ -389,14 +570,21 @@ const monthOpen = monthLogs
             : "Offen"}
         </div>
 
-        {!log.is_paid && (
-          <button
-            onClick={() => markAsPaid(log.id)}
-            className="bg-green-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-green-700 transition"
-          >
-            Ausbezahlen
-          </button>
-        )}
+        {!log.is_paid ? (
+  <button
+    onClick={() => markAsPaid(log)}
+    className="bg-green-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-green-700 transition"
+  >
+    Ausbezahlen
+  </button>
+) : (
+  <button
+    onClick={() => markAsOpen(log)}
+    className="bg-orange-500 text-white px-5 py-3 rounded-2xl font-bold hover:bg-orange-600 transition"
+  >
+    Wieder öffnen
+  </button>
+)}
 
         <button
           onClick={() => setSelectedWorkLog(log)}
@@ -424,9 +612,54 @@ const monthOpen = monthLogs
 
       </div>
 
+      
+
     );
 
   })}
+
+{/* Auszahlungshistorie */}
+
+<div className="mt-12 border-t pt-8">
+
+  <h3 className="text-3xl font-black mb-6">
+    Auszahlungen
+  </h3>
+
+  {payouts.length === 0 && (
+    <div className="text-gray-500">
+      Noch keine Auszahlungen vorhanden.
+    </div>
+  )}
+
+  {payouts.map((payout) => (
+
+    <div
+      key={payout.id}
+      className="border rounded-3xl p-5 mb-4"
+    >
+
+      <div className="font-bold text-xl">
+        {new Date(
+          payout.payout_date
+        ).toLocaleDateString("de-DE")}
+      </div>
+
+      <div className="mt-2 text-lg">
+        {Number(
+          payout.hours_paid
+        ).toFixed(2)} h
+      </div>
+
+      <div className="text-gray-500 mt-1">
+        {payout.notes}
+      </div>
+
+    </div>
+
+  ))}
+
+</div>
 
 {selectedWorkLog && (
   <EditWorkLogModal
@@ -436,6 +669,7 @@ const monthOpen = monthLogs
     onSaved={() => {
       setSelectedWorkLog(null);
       loadLogs();
+      loadPayouts();
       onChanged();
     }}
   />
